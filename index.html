@@ -1,1 +1,103 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>לוח גיוס תרומות - בניין</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+    }
 
+    /* מיכל ראשי לתמונות */
+    .building-container {
+      position: relative;
+      width: 800px;
+      max-width: 100%;
+      height: 600px;
+      margin: 20px auto;
+      border: 3px solid #333;
+      overflow: hidden;
+      /* תמונת הרקע: ההדמיה המוגמרת */
+      background-image: url('rendering.jpg'); 
+      background-size: cover;
+      background-position: center;
+    }
+
+    /* רשת הקוביות */
+    .grid-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: grid;
+      /* רשת של 20 עמודות ו-10 שורות */
+      grid-template-columns: repeat(20, 1fr);
+      grid-template-rows: repeat(10, 1fr);
+      z-index: 2;
+    }
+
+    /* עיצוב כל קובייה ברשת */
+    .tile {
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      /* תמונת הכיסוי בתוך כל קובייה */
+      background-image: url('building_now.jpg');
+      background-size: 800px 600px;
+      transition: opacity 0.5s ease;
+      cursor: pointer;
+    }
+
+    /* חישוב מיקום התמונה לכל קובייה כדי שייראה כתמונה אחת רציפה */
+    /* מחושב אוטומטית באמצעות ה-JavaScript */
+
+    /* קובייה שנתרמה - נעלמת וחושפת את תמונת ההדמיה מאחור */
+    .tile.revealed {
+      opacity: 0;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>קמפיין גיוס לבניין הקהילתי</h1>
+  <p>כל תרומה של 10,000 ש"ח חושפת חלק מההדמיה!</p>
+
+  <div class="building-container">
+    <!-- גריד 200 קוביות -->
+    <div class="grid-overlay" id="grid"></div>
+  </div>
+
+  <script>
+    const gridContainer = document.getElementById('grid');
+    const cols = 20;
+    const rows = 10;
+    const totalTiles = cols * rows;
+
+    // יצירת הקוביות וחישוב המיקום של התמונה העליונה בכל קובייה
+    for (let i = 0; i < totalTiles; i++) {
+      const tile = document.createElement('div');
+      tile.classList.add('tile');
+
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+
+      // חישוב המיקום של תמונת הבנייה עבור כל קובייה ברשת
+      const posX = (col / (cols - 1)) * 100;
+      const posY = (row / (rows - 1)) * 100;
+      tile.style.backgroundPosition = `${posX}% ${posY}%`;
+
+      // בלחיצה על קובייה היא נפלטת וחשופת את ההדמיה
+      tile.addEventListener('click', () => {
+        tile.classList.add('revealed');
+      });
+
+      gridContainer.appendChild(tile);
+    }
+  </script>
+</body>
+</html>
