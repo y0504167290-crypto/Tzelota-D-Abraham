@@ -21,7 +21,6 @@
       min-height: 100vh;
     }
 
-    /* עיצוב רכיב היעד וההתקדמות */
     .progress-wrapper {
       width: 90vw;
       max-width: 1200px;
@@ -46,7 +45,6 @@
       border-radius: 7px;
       overflow: hidden;
       margin-bottom: 15px;
-      position: relative;
     }
 
     .progress-bar-fill {
@@ -83,9 +81,11 @@
     }
 
     .controls {
-      margin-bottom: 20px;
+      margin-bottom: 15px;
       display: flex;
       gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
     }
 
     .btn {
@@ -96,16 +96,30 @@
       border: none;
       border-radius: 5px;
       cursor: pointer;
-      transition: background-color 0.2s;
+      transition: background-color 0.2s, transform 0.1s;
     }
 
-    .btn-donate { background-color: #28a745; }
-    .btn-donate:hover { background-color: #218838; }
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-add { background-color: #28a745; }
+    .btn-add:hover { background-color: #218838; }
+
+    .btn-remove { background-color: #dc3545; }
+    .btn-remove:hover { background-color: #c82333; }
 
     .btn-preview { background-color: #007bff; }
     .btn-preview:hover { background-color: #0056b3; }
 
-    /* מכולת הבניין */
+    .status-msg {
+      font-size: 16px;
+      font-weight: bold;
+      height: 24px;
+      margin-bottom: 15px;
+      color: #333;
+    }
+
     .building-container {
       position: relative;
       width: 90vw;
@@ -135,7 +149,8 @@
       height: 100%;
       object-fit: cover;
       z-index: 2;
-      transition: opacity 0.5s ease;
+      clip-path: inset(0 0 0 0);
+      transition: clip-path 1.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .grid-overlay {
@@ -152,25 +167,45 @@
 
     .tile {
       border: 1px solid rgba(255, 255, 255, 0.3);
-      background-color: transparent;
+      position: relative;
+      overflow: hidden;
       cursor: pointer;
     }
 
-    .tile.revealed {
+    /* שכבת הכיסוי שנגללת למעלה ולמטה */
+    .tile-cover {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
       background-color: transparent;
-      border-color: transparent;
+      transition: height 0.8s ease-in-out;
+    }
+
+    /* קובייה שנפתחה באופן קבוע או זמני */
+    .tile.revealed .tile-cover,
+    .tile.temp-revealed .tile-cover {
+      height: 0%;
+    }
+
+    .grid-overlay.mode-add .tile:not(.revealed) {
+      box-shadow: inset 0 0 8px rgba(40, 167, 69, 0.8);
+    }
+
+    .grid-overlay.mode-remove .tile.revealed {
+      box-shadow: inset 0 0 8px rgba(220, 53, 69, 0.8);
     }
 
     .building-container.show-rendering .bg-current {
-      opacity: 0;
+      clip-path: inset(100% 0 0 0);
     }
   </style>
 </head>
 <body>
 
-  <!-- סרגל התקדמות ונתונים -->
   <div class="progress-wrapper">
-    <div class="goal-title">יעד: ₪<span id="targetGoalText">350,000</span></div>
+    <div class="goal-title">יעד: ₪<span id="targetGoalText">2,000,000</span></div>
     
     <div class="progress-bar-container">
       <div class="progress-bar-fill" id="progressBar"></div>
@@ -192,13 +227,14 @@
     </div>
   </div>
 
-  <!-- כפתורים להפעלה בדיקה -->
   <div class="controls">
-    <button class="btn btn-donate" id="donateBtn">הוסף תרומה לדוגמה (₪1,750)</button>
-    <button class="btn btn-preview" id="previewAllBtn">הצג הדמיה מלאה ל-3 שניות</button>
+    <button class="btn btn-add" id="addModeBtn">הוסף תרומה (₪10,000)</button>
+    <button class="btn btn-remove" id="removeModeBtn">בטל תרומה (₪10,000-)</button>
+    <button class="btn btn-preview" id="previewAllBtn">הצג הדמיה מלאה בגלילה</button>
   </div>
 
-  <!-- תצוגת הבניין -->
+  <div class="status-msg" id="statusMsg">לחץ על קובייה לצפייה זמנית (3 שניות) או בחר פעולה</div>
+
   <div class="building-container" id="mainContainer">
     <img src="demo.jpg" class="bg-rendering" alt="הדמיה">
     <img src="building_now.jpg" class="bg-current" id="currentImg" alt="מצב קיים">
@@ -206,90 +242,112 @@
   </div>
 
   <script>
-    // הגדרות קמפיין
-    const targetGoal = 350000;
-    let currentRaised = 0;
-    let donorsCount = 0;
-
+    const targetGoal = 2000000;
+    const tileValue = 10000;
     const cols = 20;
     const rows = 10;
-    const totalTiles = cols * rows; // 200 משבצות
-    const pricePerTile = targetGoal / totalTiles; // ₪1,750 למשבצת
+    const totalTiles = cols * rows;
 
-    // אלמנטים מה-DOM
+    let currentRaised = 0;
+    let donorsCount = 0;
+    let currentMode = null; // 'add' | 'remove' | null
+
     const gridContainer = document.getElementById('grid');
     const container = document.getElementById('mainContainer');
     const progressBar = document.getElementById('progressBar');
     const raisedText = document.getElementById('raisedText');
     const percentText = document.getElementById('percentText');
     const donorsText = document.getElementById('donorsText');
-    const donateBtn = document.getElementById('donateBtn');
+    const addModeBtn = document.getElementById('addModeBtn');
+    const removeModeBtn = document.getElementById('removeModeBtn');
     const previewAllBtn = document.getElementById('previewAllBtn');
+    const statusMsg = document.getElementById('statusMsg');
 
     const tileElements = [];
 
-    // יצירת הגריד
     for (let i = 0; i < totalTiles; i++) {
       const tile = document.createElement('div');
       tile.classList.add('tile');
-      
-      // בלחיצה ידנית על קובייה (תרומה בודדת)
-      tile.addEventListener('click', () => {
-        if (!tile.classList.contains('revealed')) {
-          addDonation(pricePerTile);
-        }
-      });
+
+      const cover = document.createElement('div');
+      cover.classList.add('tile-cover');
+      tile.appendChild(cover);
+
+      tile.addEventListener('click', () => handleTileClick(tile));
 
       gridContainer.appendChild(tile);
       tileElements.push(tile);
     }
 
-    // פונקציה לעדכון התרומה והסרגל
-    function addDonation(amount) {
-      currentRaised += amount;
-      if (currentRaised > targetGoal) currentRaised = targetGoal;
-      
-      donorsCount++;
+    function setMode(mode) {
+      if (currentMode === mode) {
+        currentMode = null;
+      } else {
+        currentMode = mode;
+      }
 
-      updateUI();
+      gridContainer.classList.remove('mode-add', 'mode-remove');
+
+      if (currentMode === 'add') {
+        gridContainer.classList.add('mode-add');
+        statusMsg.textContent = 'בחר קובייה לפתיחה (תרומה של ₪10,000)';
+        statusMsg.style.color = '#28a745';
+      } else if (currentMode === 'remove') {
+        gridContainer.classList.add('mode-remove');
+        statusMsg.textContent = 'בחר קובייה לסגירה (ביטול של ₪10,000)';
+        statusMsg.style.color = '#dc3545';
+      } else {
+        statusMsg.textContent = 'לחץ על קובייה לצפייה זמנית (3 שניות) או בחר פעולה';
+        statusMsg.style.color = '#333';
+      }
     }
 
-    // עדכון תצוגת הממשק
-    function updateUI() {
-      // חישוב אחוזים
-      const percentage = (currentRaised / targetGoal) * 100;
-      
-      // עדכון הטקסטים
-      raisedText.textContent = Math.floor(currentRaised).toLocaleString();
-      percentText.textContent = percentage.toFixed(2) + '%';
-      donorsText.textContent = donorsCount.toLocaleString();
-      
-      // עדכון רוחב סרגל ההתקדמות האדום
-      progressBar.style.width = percentage + '%';
-
-      // חישוב כמה משבצות צריכות להיות פתוחות לפי הסכום שנאסף
-      const tilesToReveal = Math.floor((currentRaised / targetGoal) * totalTiles);
-      
-      for (let i = 0; i < totalTiles; i++) {
-        if (i < tilesToReveal) {
-          tileElements[i].classList.add('revealed');
-        } else {
-          tileElements[i].classList.remove('revealed');
+    function handleTileClick(tile) {
+      if (currentMode === 'add') {
+        if (!tile.classList.contains('revealed')) {
+          tile.classList.remove('temp-revealed');
+          tile.classList.add('revealed');
+          currentRaised += tileValue;
+          donorsCount++;
+          updateUI();
+          setMode(null);
+        }
+      } else if (currentMode === 'remove') {
+        if (tile.classList.contains('revealed')) {
+          tile.classList.remove('revealed');
+          currentRaised -= tileValue;
+          if (currentRaised < 0) currentRaised = 0;
+          if (donorsCount > 0) donorsCount--;
+          updateUI();
+          setMode(null);
+        }
+      } else {
+        // לחיצה רגילה (ללא מצב פעיל) - פתיחה זמנית ל-3 שניות
+        if (!tile.classList.contains('revealed') && !tile.classList.contains('temp-revealed')) {
+          tile.classList.add('temp-revealed');
+          setTimeout(() => {
+            tile.classList.remove('temp-revealed');
+          }, 3000);
         }
       }
     }
 
-    // כפתור תרומה לדוגמה
-    donateBtn.addEventListener('click', () => {
-      addDonation(pricePerTile);
-    });
+    function updateUI() {
+      const percentage = (currentRaised / targetGoal) * 100;
+      raisedText.textContent = currentRaised.toLocaleString();
+      percentText.textContent = percentage.toFixed(1) + '%';
+      donorsText.textContent = donorsCount.toLocaleString();
+      progressBar.style.width = percentage + '%';
+    }
 
-    // כפתור תצוגה מקדימה
+    addModeBtn.addEventListener('click', () => setMode('add'));
+    removeModeBtn.addEventListener('click', () => setMode('remove'));
+
     previewAllBtn.addEventListener('click', () => {
       container.classList.add('show-rendering');
       setTimeout(() => {
         container.classList.remove('show-rendering');
-      }, 3000);
+      }, 3500);
     });
   </script>
 </body>
