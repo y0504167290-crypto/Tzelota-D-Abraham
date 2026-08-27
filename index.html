@@ -142,20 +142,7 @@
       z-index: 1;
     }
 
-    /* שכבה 2: תמונת הבנייה הנוכחית – תמונה מלאה ורציפה שחוסמת את ההדמיה בהתחלה */
-    .bg-current {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      z-index: 2;
-      clip-path: inset(0 0 0 0);
-      transition: clip-path 1s ease-in-out;
-    }
-
-    /* שכבה 3: גריד קוביות עליון לאינטראקציה עם המשתמש */
+    /* גריד הקוביות העליון */
     .grid-overlay {
       position: absolute;
       top: 0;
@@ -165,24 +152,48 @@
       display: grid;
       grid-template-columns: repeat(20, 1fr);
       grid-template-rows: repeat(10, 1fr);
-      z-index: 3;
+      z-index: 2;
     }
 
     .tile {
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.25);
       cursor: pointer;
+      overflow: hidden;
     }
 
+    /* תמונת הבנייה שחותכת את עצמה בתוך כל קובייה בצורה מדויקת */
+    .tile-img {
+      position: absolute;
+      width: 90vw;
+      max-width: 1200px;
+      height: 675px; /* מותאם ל-4:3 */
+      object-fit: cover;
+      pointer-events: none;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    /* מצב שבו הקובייה נפתחת (בתרומה או בצפייה זמנית) */
+    .tile.revealed .tile-img,
+    .tile.temp-revealed .tile-img {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+
+    /* הדגשות לבחירת כפתורים */
     .grid-overlay.mode-add .tile:not(.revealed) {
+      box-shadow: inset 0 0 8px rgba(40, 167, 69, 0.9);
       background-color: rgba(40, 167, 69, 0.25);
     }
 
     .grid-overlay.mode-remove .tile.revealed {
+      box-shadow: inset 0 0 8px rgba(220, 53, 69, 0.9);
       background-color: rgba(220, 53, 69, 0.25);
     }
 
-    .building-container.show-rendering .bg-current {
-      clip-path: inset(100% 0 0 0);
+    .grid-overlay.show-all .tile-img {
+      opacity: 0;
+      transform: scale(0.9);
     }
   </style>
 </head>
@@ -220,13 +231,10 @@
   <div class="status-msg" id="statusMsg">לחץ על קובייה לצפייה זמנית (3 שניות) או בחר פעולה</div>
 
   <div class="building-container" id="mainContainer">
-    <!-- שכבה 1: הדמיה -->
+    <!-- תמונת ההדמיה ברקע התחתון -->
     <img src="demo.jpg" class="bg-rendering" alt="הדמיה">
     
-    <!-- שכבה 2: תמונת הבנייה הנוכחית -->
-    <img src="building_now.jpg" class="bg-current" id="currentImg" alt="מצב קיים">
-    
-    <!-- שכבה 3: גריד -->
+    <!-- גריד הקוביות -->
     <div class="grid-overlay" id="grid"></div>
   </div>
 
@@ -242,8 +250,6 @@
     let currentMode = null;
 
     const gridContainer = document.getElementById('grid');
-    const container = document.getElementById('mainContainer');
-    const currentImg = document.getElementById('currentImg');
     const progressBar = document.getElementById('progressBar');
     const raisedText = document.getElementById('raisedText');
     const percentText = document.getElementById('percentText');
@@ -255,10 +261,27 @@
 
     const tileElements = [];
 
+    // יצירת הקוביות והצבת תמונת הבנייה בתוכן בצורה ממוקמת
     for (let i = 0; i < totalTiles; i++) {
       const tile = document.createElement('div');
       tile.classList.add('tile');
+
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+
+      const img = document.createElement('img');
+      img.src = 'building_now.jpg';
+      img.classList.add('tile-img');
+
+      // מיקום החלק המדויק של התמונה בתוך המשבצת
+      img.style.left = `-${col * 100}%`;
+      img.style.top = `-${row * 100}%`;
+      img.style.width = `${cols * 100}%`;
+      img.style.height = `${rows * 100}%`;
+
+      tile.appendChild(img);
       tile.addEventListener('click', () => handleTileClick(tile));
+
       gridContainer.appendChild(tile);
       tileElements.push(tile);
     }
@@ -289,11 +312,11 @@
     function handleTileClick(tile) {
       if (currentMode === 'add') {
         if (!tile.classList.contains('revealed')) {
+          tile.classList.remove('temp-revealed');
           tile.classList.add('revealed');
           currentRaised += tileValue;
           donorsCount++;
           updateUI();
-          updateBuildingClipPath();
           setMode(null);
         }
       } else if (currentMode === 'remove') {
@@ -303,31 +326,17 @@
           if (currentRaised < 0) currentRaised = 0;
           if (donorsCount > 0) donorsCount--;
           updateUI();
-          updateBuildingClipPath();
           setMode(null);
         }
       } else {
-        // צפייה זמנית (3 שניות) בלחיצה חופשית
+        // צפייה זמנית (3 שניות) בלחיצה חופשית על קובייה סגורה
         if (!tile.classList.contains('revealed') && !tile.classList.contains('temp-revealed')) {
           tile.classList.add('temp-revealed');
-          // חשיפה זמנית של חלק מהתמונה בזמן הלחיצה
-          const revealedCount = document.querySelectorAll('.tile.revealed').length + 5;
-          const tempRatio = Math.min(revealedCount / totalTiles, 1);
-          currentImg.style.clipPath = `inset(0 0 ${100 - (tempRatio * 100)}% 0)`;
-
           setTimeout(() => {
             tile.classList.remove('temp-revealed');
-            updateBuildingClipPath();
           }, 3000);
         }
       }
-    }
-
-    function updateBuildingClipPath() {
-      const revealedCount = document.querySelectorAll('.tile.revealed').length;
-      const progressRatio = revealedCount / totalTiles;
-      const clipPercent = progressRatio * 100;
-      currentImg.style.clipPath = `inset(0 0 ${100 - clipPercent}% 0)`;
     }
 
     function updateUI() {
@@ -342,9 +351,9 @@
     removeModeBtn.addEventListener('click', () => setMode('remove'));
 
     previewAllBtn.addEventListener('click', () => {
-      container.classList.add('show-rendering');
+      gridContainer.classList.add('show-all');
       setTimeout(() => {
-        container.classList.remove('show-rendering');
+        gridContainer.classList.remove('show-all');
       }, 4000);
     });
   </script>
