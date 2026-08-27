@@ -5,42 +5,118 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>קמפיין גיוס לבניין</title>
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       font-family: Arial, sans-serif;
       text-align: center;
       background-color: #f4f4f4;
       margin: 0;
       padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
     }
 
-    .preview-btn {
+    /* עיצוב רכיב היעד וההתקדמות */
+    .progress-wrapper {
+      width: 90vw;
+      max-width: 1200px;
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 25px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .goal-title {
+      font-size: 32px;
+      font-weight: bold;
+      color: #0088cc;
+      margin: 0 0 15px 0;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 14px;
+      background-color: #e0e0e0;
+      border-radius: 7px;
+      overflow: hidden;
+      margin-bottom: 15px;
+      position: relative;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background-color: #ff5252;
+      border-radius: 7px;
+      transition: width 0.4s ease;
+    }
+
+    .stats-container {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      direction: rtl;
+    }
+
+    .stat-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .stat-value {
+      font-size: 22px;
+      font-weight: bold;
+      color: #0088cc;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: #666666;
+      margin-top: 4px;
+    }
+
+    .controls {
+      margin-bottom: 20px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
       padding: 10px 20px;
       font-size: 16px;
       font-weight: bold;
-      background-color: #007bff;
       color: white;
       border: none;
       border-radius: 5px;
       cursor: pointer;
-      margin-bottom: 15px;
       transition: background-color 0.2s;
     }
 
-    .preview-btn:hover {
-      background-color: #0056b3;
-    }
+    .btn-donate { background-color: #28a745; }
+    .btn-donate:hover { background-color: #218838; }
 
+    .btn-preview { background-color: #007bff; }
+    .btn-preview:hover { background-color: #0056b3; }
+
+    /* מכולת הבניין */
     .building-container {
       position: relative;
-      width: 800px;
-      height: 600px;
-      margin: 0 auto;
-      border: 3px solid #333;
+      width: 90vw;
+      max-width: 1200px;
+      aspect-ratio: 4 / 3;
+      border: 4px solid #333;
       overflow: hidden;
-      background-color: #ddd;
+      background-color: #333;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
     }
 
-    /* תמונת ההדמיה התחתונה */
     .bg-rendering {
       position: absolute;
       top: 0;
@@ -49,6 +125,17 @@
       height: 100%;
       object-fit: cover;
       z-index: 1;
+    }
+
+    .bg-current {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 2;
+      transition: opacity 0.5s ease;
     }
 
     .grid-overlay {
@@ -60,75 +147,148 @@
       display: grid;
       grid-template-columns: repeat(20, 1fr);
       grid-template-rows: repeat(10, 1fr);
-      z-index: 2;
+      z-index: 3;
     }
 
     .tile {
-      border: 1px solid rgba(255, 255, 255, 0.4);
-      box-sizing: border-box;
-      /* קישור תואם בדיוק לשם הקובץ ב-GitHub */
-      background-image: url('building_now.jpg');
-      background-size: 800px 600px;
-      background-repeat: no-repeat;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      background-color: transparent;
       cursor: pointer;
-      transition: opacity 0.3s ease;
-      opacity: 1;
     }
 
     .tile.revealed {
+      background-color: transparent;
+      border-color: transparent;
+    }
+
+    .building-container.show-rendering .bg-current {
       opacity: 0;
     }
   </style>
 </head>
 <body>
 
-  <h1>קמפיין גיוס לבניין</h1>
-  <p>כל תרומה חושפת חלק מההדמיה!</p>
+  <!-- סרגל התקדמות ונתונים -->
+  <div class="progress-wrapper">
+    <div class="goal-title">יעד: ₪<span id="targetGoalText">350,000</span></div>
+    
+    <div class="progress-bar-container">
+      <div class="progress-bar-fill" id="progressBar"></div>
+    </div>
 
-  <button class="preview-btn" id="previewAllBtn">הצג הדמיה מלאה ל-3 שניות</button>
+    <div class="stats-container">
+      <div class="stat-box">
+        <span class="stat-value" id="percentText">0%</span>
+        <span class="stat-label">מהיעד</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-value">₪<span id="raisedText">0</span></span>
+        <span class="stat-label">הסכום שהושג</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-value" id="donorsText">0</span>
+        <span class="stat-label">תורמים</span>
+      </div>
+    </div>
+  </div>
 
-  <div class="building-container">
-    <!-- קישור תואם בדיוק לשם קובץ ההדמיה ב-GitHub -->
+  <!-- כפתורים להפעלה בדיקה -->
+  <div class="controls">
+    <button class="btn btn-donate" id="donateBtn">הוסף תרומה לדוגמה (₪1,750)</button>
+    <button class="btn btn-preview" id="previewAllBtn">הצג הדמיה מלאה ל-3 שניות</button>
+  </div>
+
+  <!-- תצוגת הבניין -->
+  <div class="building-container" id="mainContainer">
     <img src="demo.jpg" class="bg-rendering" alt="הדמיה">
+    <img src="building_now.jpg" class="bg-current" id="currentImg" alt="מצב קיים">
     <div class="grid-overlay" id="grid"></div>
   </div>
 
   <script>
-    const gridContainer = document.getElementById('grid');
-    const previewAllBtn = document.getElementById('previewAllBtn');
+    // הגדרות קמפיין
+    const targetGoal = 350000;
+    let currentRaised = 0;
+    let donorsCount = 0;
 
     const cols = 20;
     const rows = 10;
-    const totalTiles = cols * rows;
+    const totalTiles = cols * rows; // 200 משבצות
+    const pricePerTile = targetGoal / totalTiles; // ₪1,750 למשבצת
+
+    // אלמנטים מה-DOM
+    const gridContainer = document.getElementById('grid');
+    const container = document.getElementById('mainContainer');
+    const progressBar = document.getElementById('progressBar');
+    const raisedText = document.getElementById('raisedText');
+    const percentText = document.getElementById('percentText');
+    const donorsText = document.getElementById('donorsText');
+    const donateBtn = document.getElementById('donateBtn');
+    const previewAllBtn = document.getElementById('previewAllBtn');
+
     const tileElements = [];
 
+    // יצירת הגריד
     for (let i = 0; i < totalTiles; i++) {
       const tile = document.createElement('div');
       tile.classList.add('tile');
-
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-
-      const posX = (col / (cols - 1)) * 100;
-      const posY = (row / (rows - 1)) * 100;
       
-      tile.style.backgroundPosition = `${posX}% ${posY}%`;
-
+      // בלחיצה ידנית על קובייה (תרומה בודדת)
       tile.addEventListener('click', () => {
-        tile.classList.add('revealed');
-        setTimeout(() => {
-          tile.classList.remove('revealed');
-        }, 1000);
+        if (!tile.classList.contains('revealed')) {
+          addDonation(pricePerTile);
+        }
       });
 
       gridContainer.appendChild(tile);
       tileElements.push(tile);
     }
 
+    // פונקציה לעדכון התרומה והסרגל
+    function addDonation(amount) {
+      currentRaised += amount;
+      if (currentRaised > targetGoal) currentRaised = targetGoal;
+      
+      donorsCount++;
+
+      updateUI();
+    }
+
+    // עדכון תצוגת הממשק
+    function updateUI() {
+      // חישוב אחוזים
+      const percentage = (currentRaised / targetGoal) * 100;
+      
+      // עדכון הטקסטים
+      raisedText.textContent = Math.floor(currentRaised).toLocaleString();
+      percentText.textContent = percentage.toFixed(2) + '%';
+      donorsText.textContent = donorsCount.toLocaleString();
+      
+      // עדכון רוחב סרגל ההתקדמות האדום
+      progressBar.style.width = percentage + '%';
+
+      // חישוב כמה משבצות צריכות להיות פתוחות לפי הסכום שנאסף
+      const tilesToReveal = Math.floor((currentRaised / targetGoal) * totalTiles);
+      
+      for (let i = 0; i < totalTiles; i++) {
+        if (i < tilesToReveal) {
+          tileElements[i].classList.add('revealed');
+        } else {
+          tileElements[i].classList.remove('revealed');
+        }
+      }
+    }
+
+    // כפתור תרומה לדוגמה
+    donateBtn.addEventListener('click', () => {
+      addDonation(pricePerTile);
+    });
+
+    // כפתור תצוגה מקדימה
     previewAllBtn.addEventListener('click', () => {
-      tileElements.forEach(tile => tile.classList.add('revealed'));
+      container.classList.add('show-rendering');
       setTimeout(() => {
-        tileElements.forEach(tile => tile.classList.remove('revealed'));
+        container.classList.remove('show-rendering');
       }, 3000);
     });
   </script>
