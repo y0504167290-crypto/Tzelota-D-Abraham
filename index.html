@@ -1,4 +1,4 @@
-<!-- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
@@ -131,7 +131,6 @@
       box-shadow: 0 10px 25px rgba(0,0,0,0.2);
     }
 
-    /* שכבה 1: תמונת ההדמיה ברקע התחתון */
     .bg-rendering {
       position: absolute;
       top: 0;
@@ -142,7 +141,6 @@
       z-index: 1;
     }
 
-    /* גריד הקוביות העליון */
     .grid-overlay {
       position: absolute;
       top: 0;
@@ -157,17 +155,15 @@
 
     .tile {
       position: relative;
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.25);
       cursor: pointer;
-      /* הגדרת תמונת הרקע כך שתתפרס בדיוק על כל רוחב וגובה קונטיינר הגריד */
       background-image: url('building_now.jpg');
-      background-size: 2000% 1000%; /* 20 עמודות אופקיות, 10 שורות אנכיות */
+      /* גודל התמונה ביחס לגריד של 20 עמודות ו-10 שורות */
+      background-size: 2000% 1000%;
       background-repeat: no-repeat;
       transition: opacity 0.4s ease, transform 0.4s ease;
     }
 
-    /* חישוב מדויק של מיקום החלק לכל קובייה לפי האינדקס שלה */
-    .grid-overlay.show-all .tile,
     .tile.revealed,
     .tile.temp-revealed {
       opacity: 0;
@@ -175,7 +171,6 @@
       pointer-events: none;
     }
 
-    /* מצבי הדגשה לכפתורים */
     .grid-overlay.mode-add .tile:not(.revealed) {
       box-shadow: inset 0 0 8px rgba(40, 167, 69, 0.9);
       background-color: rgba(40, 167, 69, 0.25);
@@ -187,6 +182,12 @@
       opacity: 1 !important;
       transform: none !important;
       pointer-events: auto !important;
+    }
+
+    .grid-overlay.show-all .tile {
+      opacity: 0;
+      transform: scale(0.92);
+      pointer-events: none;
     }
   </style>
 </head>
@@ -224,10 +225,7 @@
   <div class="status-msg" id="statusMsg">לחץ על קובייה לצפייה זמנית (3 שניות) או בחר פעולה</div>
 
   <div class="building-container" id="mainContainer">
-    <!-- תמונת ההדמיה ברקע התחתון -->
     <img src="demo.jpg" class="bg-rendering" alt="הדמיה">
-    
-    <!-- גריד הקוביות -->
     <div class="grid-overlay" id="grid"></div>
   </div>
 
@@ -254,7 +252,7 @@
 
     const tileElements = [];
 
-    // יצירת הקוביות עם חישוב מדויק של ה-background-position לכל קובייה
+    // חישוב מיקומים מדויק באחוזים לכל קובייה
     for (let i = 0; i < totalTiles; i++) {
       const tile = document.createElement('div');
       tile.classList.add('tile');
@@ -262,9 +260,10 @@
       const col = i % cols;
       const row = Math.floor(i / cols);
 
-      // חישוב אחוזוני המיקום בדיוק לפי מספר העמודות והשורות
-      const xPercent = (col / (cols - 1)) * 100;
-      const yPercent = (row / (rows - 1)) * 100;
+      // חישוב האחוזים המדויק למציאת נקודת ה-Offset
+      const xPercent = cols > 1 ? (col / (cols - 1)) * 100 : 0;
+      const yPercent = rows > 1 ? (row / (rows - 1)) * 100 : 0;
+
       tile.style.backgroundPosition = `${xPercent}% ${yPercent}%`;
 
       tile.addEventListener('click', () => handleTileClick(tile));
@@ -316,7 +315,6 @@
           setMode(null);
         }
       } else {
-        // צפייה זמנית (3 שניות) בלחיצה חופשית על קובייה סגורה
         if (!tile.classList.contains('revealed') && !tile.classList.contains('temp-revealed')) {
           tile.classList.add('temp-revealed');
           setTimeout(() => {
