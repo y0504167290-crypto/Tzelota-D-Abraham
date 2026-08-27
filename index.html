@@ -131,6 +131,7 @@
       box-shadow: 0 10px 25px rgba(0,0,0,0.2);
     }
 
+    /* תמונת ההדמיה מאחור */
     .bg-rendering {
       position: absolute;
       top: 0;
@@ -141,18 +142,7 @@
       z-index: 1;
     }
 
-    .bg-current {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      z-index: 2;
-      clip-path: inset(0 0 0 0);
-      transition: clip-path 1.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
+    /* גריד הקוביות שמציג את תמונת הבנייה הנוכחית */
     .grid-overlay {
       position: absolute;
       top: 0;
@@ -162,33 +152,35 @@
       display: grid;
       grid-template-columns: repeat(20, 1fr);
       grid-template-rows: repeat(10, 1fr);
-      z-index: 3;
+      z-index: 2;
     }
 
     .tile {
       border: 1px solid rgba(255, 255, 255, 0.3);
-      position: relative;
-      overflow: hidden;
+      background-image: url('building_now.jpg');
+      background-size: 90vw calc(90vw * 0.75);
       cursor: pointer;
+      box-sizing: border-box;
+      
+      /* אפקט גלילה איטי ומתון להסרת הכיסוי */
+      clip-path: inset(0 0 0 0);
+      transition: clip-path 2s ease-in-out;
     }
 
-    /* שכבת הכיסוי שנגללת למעלה ולמטה */
-    .tile-cover {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: transparent;
-      transition: height 0.8s ease-in-out;
+    /* התאמת גודל הרקע למסכים גדולים */
+    @media (min-width: 1333px) {
+      .tile {
+        background-size: 1200px 900px;
+      }
     }
 
-    /* קובייה שנפתחה באופן קבוע או זמני */
-    .tile.revealed .tile-cover,
-    .tile.temp-revealed .tile-cover {
-      height: 0%;
+    /* קובייה שנחשפת - הגלילה יורדת מלמעלה למטה לאט */
+    .tile.revealed,
+    .tile.temp-revealed {
+      clip-path: inset(100% 0 0 0);
     }
 
+    /* מצבי הדגשה לבחירה */
     .grid-overlay.mode-add .tile:not(.revealed) {
       box-shadow: inset 0 0 8px rgba(40, 167, 69, 0.8);
     }
@@ -197,7 +189,8 @@
       box-shadow: inset 0 0 8px rgba(220, 53, 69, 0.8);
     }
 
-    .building-container.show-rendering .bg-current {
+    /* תצוגה מקדימה מלאה */
+    .grid-overlay.show-all .tile {
       clip-path: inset(100% 0 0 0);
     }
   </style>
@@ -237,7 +230,6 @@
 
   <div class="building-container" id="mainContainer">
     <img src="demo.jpg" class="bg-rendering" alt="הדמיה">
-    <img src="building_now.jpg" class="bg-current" id="currentImg" alt="מצב קיים">
     <div class="grid-overlay" id="grid"></div>
   </div>
 
@@ -253,7 +245,6 @@
     let currentMode = null; // 'add' | 'remove' | null
 
     const gridContainer = document.getElementById('grid');
-    const container = document.getElementById('mainContainer');
     const progressBar = document.getElementById('progressBar');
     const raisedText = document.getElementById('raisedText');
     const percentText = document.getElementById('percentText');
@@ -265,13 +256,19 @@
 
     const tileElements = [];
 
+    // יצירת הקוביות וחישוב המיקום המדויק של תמונת הרקע בכל קובייה
     for (let i = 0; i < totalTiles; i++) {
       const tile = document.createElement('div');
       tile.classList.add('tile');
 
-      const cover = document.createElement('div');
-      cover.classList.add('tile-cover');
-      tile.appendChild(cover);
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+
+      // חישוב באחוזים למיקום מדויק של הרקע
+      const posX = (col / (cols - 1)) * 100;
+      const posY = (row / (rows - 1)) * 100;
+
+      tile.style.backgroundPosition = `${posX}% ${posY}%`;
 
       tile.addEventListener('click', () => handleTileClick(tile));
 
@@ -322,7 +319,7 @@
           setMode(null);
         }
       } else {
-        // לחיצה רגילה (ללא מצב פעיל) - פתיחה זמנית ל-3 שניות
+        // לחיצה זמנית ל-3 שניות
         if (!tile.classList.contains('revealed') && !tile.classList.contains('temp-revealed')) {
           tile.classList.add('temp-revealed');
           setTimeout(() => {
@@ -344,10 +341,10 @@
     removeModeBtn.addEventListener('click', () => setMode('remove'));
 
     previewAllBtn.addEventListener('click', () => {
-      container.classList.add('show-rendering');
+      gridContainer.classList.add('show-all');
       setTimeout(() => {
-        container.classList.remove('show-rendering');
-      }, 3500);
+        gridContainer.classList.remove('show-all');
+      }, 4000);
     });
   </script>
 </body>
