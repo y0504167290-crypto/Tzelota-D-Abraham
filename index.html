@@ -159,15 +159,13 @@
       position: relative;
       border: 1px solid rgba(255, 255, 255, 0.3);
       cursor: pointer;
-      /* הגדרת תמונת הרקע כך שתתפרס בדיוק על כל רוחב וגובה קונטיינר הגריד */
       background-image: url('building_now.jpg');
-      background-size: 2000% 1000%; /* 20 עמודות אופקיות, 10 שורות אנכיות */
+      background-size: 2000% 1000%;
       background-repeat: no-repeat;
       transition: opacity 0.4s ease, transform 0.4s ease;
     }
 
-    /* חישוב מדויק של מיקום החלק לכל קובייה לפי האינדקס שלה */
-    .grid-overlay.show-all .tile,
+    /* מצב חשיפת קובייה (בתרומה או צפייה זמנית) */
     .tile.revealed,
     .tile.temp-revealed {
       opacity: 0;
@@ -175,7 +173,7 @@
       pointer-events: none;
     }
 
-    /* מצבי הדגשה לכפתורים */
+    /* מצבי הדגשה לבחירת כפתורים */
     .grid-overlay.mode-add .tile:not(.revealed) {
       box-shadow: inset 0 0 8px rgba(40, 167, 69, 0.9);
       background-color: rgba(40, 167, 69, 0.25);
@@ -187,6 +185,12 @@
       opacity: 1 !important;
       transform: none !important;
       pointer-events: auto !important;
+    }
+
+    .grid-overlay.show-all .tile {
+      opacity: 0;
+      transform: scale(0.92);
+      pointer-events: none;
     }
   </style>
 </head>
@@ -254,7 +258,7 @@
 
     const tileElements = [];
 
-    // יצירת הקוביות עם חישוב מדויק של ה-background-position לכל קובייה
+    // יצירת הקוביות וחישוב מיקום הרקע בצורה מותאמת לגריד
     for (let i = 0; i < totalTiles; i++) {
       const tile = document.createElement('div');
       tile.classList.add('tile');
@@ -262,7 +266,6 @@
       const col = i % cols;
       const row = Math.floor(i / cols);
 
-      // חישוב אחוזוני המיקום בדיוק לפי מספר העמודות והשורות
       const xPercent = (col / (cols - 1)) * 100;
       const yPercent = (row / (rows - 1)) * 100;
       tile.style.backgroundPosition = `${xPercent}% ${yPercent}%`;
