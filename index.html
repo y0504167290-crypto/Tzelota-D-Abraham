@@ -142,7 +142,7 @@
       z-index: 1;
     }
 
-    /* שכבה 2: תמונת הבנייה הנוכחית */
+    /* שכבה 2: תמונת הבנייה הדינמית (מצב קיים) */
     .bg-current {
       position: absolute;
       top: 0;
@@ -152,10 +152,10 @@
       object-fit: cover;
       z-index: 2;
       clip-path: inset(0 0 0 0);
-      transition: clip-path 2s ease-in-out;
+      transition: clip-path 1.5s ease-in-out;
     }
 
-    /* שכבה 3: גריד קוביות עליון */
+    /* שכבה 3: גריד קוביות עליון אינטראקטיבי לחלוטין */
     .grid-overlay {
       position: absolute;
       top: 0;
@@ -172,17 +172,31 @@
       position: relative;
       border: 1px solid rgba(255, 255, 255, 0.2);
       cursor: pointer;
+      background-color: rgba(0, 0, 0, 0.0); /* שקוף לחלוטין אך מקבל לחיצות */
+      transition: background-color 0.2s;
     }
 
-    /* מצבי הדגשה לבחירת משבצות */
-    .grid-overlay.mode-add .tile:not(.revealed) {
-      box-shadow: inset 0 0 8px rgba(40, 167, 69, 0.9);
-      background-color: rgba(40, 167, 69, 0.15);
+    /* הדגשת קוביות במצב הוספה */
+    .grid-overlay.mode-add .tile:not(.revealed):hover {
+      background-color: rgba(40, 167, 69, 0.4);
     }
 
-    .grid-overlay.mode-remove .tile.revealed {
-      box-shadow: inset 0 0 8px rgba(220, 53, 69, 0.9);
-      background-color: rgba(220, 53, 69, 0.15);
+    /* הדגשת קוביות במצב הסרה */
+    .grid-overlay.mode-remove .tile.revealed:hover {
+      background-color: rgba(220, 53, 69, 0.4);
+    }
+
+    /* צפייה זמנית (3 שניות) - מציגה חור קטן דרך הבנייה להדמיה */
+    .tile.temp-revealed::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      z-index: 4;
+      box-shadow: inset 0 0 15px rgba(0, 136, 204, 0.9);
     }
 
     /* חשיפת ההדמיה בגלילה מלאה */
@@ -283,71 +297,4 @@
         statusMsg.style.color = '#28a745';
       } else if (currentMode === 'remove') {
         gridContainer.classList.add('mode-remove');
-        statusMsg.textContent = 'בחר קובייה לסגירה (ביטול של ₪10,000)';
-        statusMsg.style.color = '#dc3545';
-      } else {
-        statusMsg.textContent = 'לחץ על קובייה לצפייה זמנית (3 שניות) או בחר פעולה';
-        statusMsg.style.color = '#333';
-      }
-    }
-
-    function handleTileClick(tile) {
-      if (currentMode === 'add') {
-        if (!tile.classList.contains('revealed')) {
-          tile.classList.add('revealed');
-          currentRaised += tileValue;
-          donorsCount++;
-          updateUI();
-          updateBuildingClipPath();
-          setMode(null);
-        }
-      } else if (currentMode === 'remove') {
-        if (tile.classList.contains('revealed')) {
-          tile.classList.remove('revealed');
-          currentRaised -= tileValue;
-          if (currentRaised < 0) currentRaised = 0;
-          if (donorsCount > 0) donorsCount--;
-          updateUI();
-          updateBuildingClipPath();
-          setMode(null);
-        }
-      } else {
-        // צפייה זמנית ל-3 שניות בלחיצה חופשית
-        if (!tile.classList.contains('revealed') && !tile.classList.contains('temp-revealed')) {
-          tile.classList.add('temp-revealed');
-          setTimeout(() => {
-            tile.classList.remove('temp-revealed');
-          }, 3000);
-        }
-      }
-    }
-
-    // חישוב חשיפת התמונה בהתאם למספר המשבצות שנפתחו
-    function updateBuildingClipPath() {
-      const revealedCount = document.querySelectorAll('.tile.revealed').length;
-      const progressRatio = revealedCount / totalTiles;
-      
-      const clipPercent = progressRatio * 100;
-      currentImg.style.clipPath = `inset(0 0 ${100 - clipPercent}% 0)`;
-    }
-
-    function updateUI() {
-      const percentage = (currentRaised / targetGoal) * 100;
-      raisedText.textContent = currentRaised.toLocaleString();
-      percentText.textContent = percentage.toFixed(1) + '%';
-      donorsText.textContent = donorsCount.toLocaleString();
-      progressBar.style.width = percentage + '%';
-    }
-
-    addModeBtn.addEventListener('click', () => setMode('add'));
-    removeModeBtn.addEventListener('click', () => setMode('remove'));
-
-    previewAllBtn.addEventListener('click', () => {
-      container.classList.add('show-rendering');
-      setTimeout(() => {
-        container.classList.remove('show-rendering');
-      }, 4000);
-    });
-  </script>
-</body>
-</html>
+        statusMsg.textContent = '
