@@ -1,161 +1,59 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>לוח גיוס תרומות - בניין</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 20px;
-    }
-
-    .preview-btn {
-      padding: 10px 20px;
-      font-size: 16px;
-      font-weight: bold;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      margin-bottom: 15px;
-      transition: background-color 0.2s;
-    }
-
-    .preview-btn:hover {
-      background-color: #0056b3;
-    }
-
-    /* מיכל ראשי */
-    .building-container {
-      position: relative;
-      width: 800px;
-      height: 600px;
-      margin: 0 auto;
-      border: 3px solid #333;
-      overflow: hidden;
-      /* תמונת ההדמיה ברקע */
-      background-image: url('rendering.jpg'); 
-      background-size: 100% 100%;
-      background-position: center;
-      background-repeat: no-repeat;
-      background-color: #ddd; /* צבע גיבוי אם התמונה לא נטענת */
-    }
-
-    /* תמונת הבנייה שיושבת בשלמותה מעל ההדמיה */
-    .building-top-img {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      z-index: 1;
-      pointer-events: none;
-    }
-
-    /* רשת הקוביות והקווים */
-    .grid-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: grid;
-      grid-template-columns: repeat(20, 1fr);
-      grid-template-rows: repeat(10, 1fr);
-      z-index: 2;
-    }
-
-    /* עיצוב כל קובייה */
-    .tile {
-      border: 1px solid rgba(255, 255, 255, 0.6);
-      box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.3);
-      background-color: transparent;
-      cursor: pointer;
-      transition: opacity 1.5s ease;
-    }
-
-    /* הסתרת קובייה / תצוגה מקדימה */
-    .tile.preview-active,
-    .tile.revealed {
-      opacity: 0;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>הדמיה ומבנה</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f4f4f9;
+        }
+        .container {
+            text-align: center;
+            width: 90%;
+            max-width: 800px;
+        }
+        .image-card {
+            position: relative;
+            width: 100%;
+            height: 450px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            background-size: cover;
+            background-position: center;
+            transition: background-image 0.5s ease-in-out;
+            /* ברירת המחדל - הבניין כיום */
+            background-image: url('building_now.jpg');
+        }
+        /* כשהעכבר עובר או בלחיצה - התמונה מתחלפת להדמיה */
+        .image-card:hover, .image-card:active {
+            background-image: url('רינדור.jpg.jpg');
+        }
+        .instructions {
+            margin-top: 15px;
+            font-size: 1.1rem;
+            color: #333;
+        }
+    </style>
 </head>
 <body>
 
-  <h1>קמפיין גיוס לבניין הקהילתי</h1>
-  <p>כל תרומה חושפת חלק מההדמיה!</p>
+    <div class="container">
+        <div class="image-card" id="imageCard"></div>
+        <p class="instructions">העבר את העכבר (או לחץ במסך מגע) על התמונה כדי לראות את ההדמיה</p>
+    </div>
 
-  <button class="preview-btn" id="previewAllBtn">הצג הדמיה מלאה ל-3 שניות</button>
-
-  <div class="building-container">
-    <!-- תמונת הבנייה הרציפה -->
-    <img src="building_now.jpg" class="building-top-img" id="topImg" alt="בניין בבנייה">
-    
-    <!-- רשת הקוביות -->
-    <div class="grid-overlay" id="grid"></div>
-  </div>
-
-  <script>
-    const gridContainer = document.getElementById('grid');
-    const previewAllBtn = document.getElementById('previewAllBtn');
-    const topImg = document.getElementById('topImg');
-
-    const cols = 20;
-    const rows = 10;
-    const totalTiles = cols * rows;
-    const tileElements = [];
-
-    // יצירת 200 קוביות
-    for (let i = 0; i < totalTiles; i++) {
-      const tile = document.createElement('div');
-      tile.classList.add('tile');
-
-      // בלחיצה על קובייה: חשיפה זמנית של תמונת ההדמיה לשנייה אחת
-      tile.addEventListener('click', () => {
-        if (!tile.classList.contains('revealed')) {
-          // העלמת תמונת ה-Top זמנית או הקובייה
-          tile.classList.add('preview-active');
-          updateImageClip();
-
-          setTimeout(() => {
-            tile.classList.remove('preview-active');
-            updateImageClip();
-          }, 1000);
-        }
-      });
-
-      gridContainer.appendChild(tile);
-      tileElements.push(tile);
-    }
-
-    // פונקציה שחוותה "חורים" בתמונת העליונה לפי הקוביות הגלויות
-    function updateImageClip() {
-      // אם כולן גלויות/בתצוגה מקדימה - מסתירים את התמונה העליונה
-      const hiddenTiles = tileElements.filter(t => t.classList.contains('preview-active') || t.classList.contains('revealed'));
-      
-      if (hiddenTiles.length === totalTiles) {
-        topImg.style.opacity = '0';
-      } else {
-        topImg.style.opacity = '1';
-      }
-    }
-
-    // כפתור חשיפה מלאה ל-3 שניות
-    previewAllBtn.addEventListener('click', () => {
-      topImg.style.transition = 'opacity 0.5s ease';
-      topImg.style.opacity = '0';
-
-      setTimeout(() => {
-        topImg.style.opacity = '1';
-      }, 3000);
-    });
-  </script>
 </body>
 </html>
