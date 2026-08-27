@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
@@ -157,22 +157,17 @@
 
     .tile {
       position: relative;
-      border: 1px solid rgba(255, 255, 255, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.3);
       cursor: pointer;
+      /* הגדרת תמונת הרקע כך שתתפרס בדיוק על כל רוחב וגובה קונטיינר הגריד */
       background-image: url('building_now.jpg');
-      /* התאמה מדויקת לגודל הקונטיינר הכולל כדי למנוע עיוותים */
-      background-size: calc(90vw * 1) calc((90vw * 0.75) * 1); 
+      background-size: 2000% 1000%; /* 20 עמודות אופקיות, 10 שורות אנכיות */
       background-repeat: no-repeat;
       transition: opacity 0.4s ease, transform 0.4s ease;
     }
 
-    @media (min-width: 1333px) {
-      .tile {
-        background-size: 1200px 900px;
-      }
-    }
-
-    /* מצב חשיפת קובייה (בתרומה או צפייה זמנית) */
+    /* חישוב מדויק של מיקום החלק לכל קובייה לפי האינדקס שלה */
+    .grid-overlay.show-all .tile,
     .tile.revealed,
     .tile.temp-revealed {
       opacity: 0;
@@ -180,7 +175,7 @@
       pointer-events: none;
     }
 
-    /* מצבי הדגשה לבחירת כפתורים */
+    /* מצבי הדגשה לכפתורים */
     .grid-overlay.mode-add .tile:not(.revealed) {
       box-shadow: inset 0 0 8px rgba(40, 167, 69, 0.9);
       background-color: rgba(40, 167, 69, 0.25);
@@ -193,12 +188,6 @@
       transform: none !important;
       pointer-events: auto !important;
     }
-
-    .grid-overlay.show-all .tile {
-      opacity: 0;
-      transform: scale(0.92);
-      pointer-events: none;
-    }
   </style>
 </head>
 <body>
@@ -209,13 +198,6 @@
     <div class="progress-bar-container">
       <div class="progress-bar-fill" id="progressBar"></div>
     </div>
-
-    .stats-container {
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      direction: rtl;
-    }
 
     <div class="stats-container">
       <div class="stat-box">
@@ -272,7 +254,7 @@
 
     const tileElements = [];
 
-    // יצירת הקוביות וחישוב מיקום הרקע בדיוק לפי אינדקס המשבצת בגריד
+    // יצירת הקוביות עם חישוב מדויק של ה-background-position לכל קובייה
     for (let i = 0; i < totalTiles; i++) {
       const tile = document.createElement('div');
       tile.classList.add('tile');
@@ -280,6 +262,7 @@
       const col = i % cols;
       const row = Math.floor(i / cols);
 
+      // חישוב אחוזוני המיקום בדיוק לפי מספר העמודות והשורות
       const xPercent = (col / (cols - 1)) * 100;
       const yPercent = (row / (rows - 1)) * 100;
       tile.style.backgroundPosition = `${xPercent}% ${yPercent}%`;
