@@ -157,12 +157,19 @@
 
     .tile {
       position: relative;
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.25);
       cursor: pointer;
       background-image: url('building_now.jpg');
-      background-size: 2000% 1000%;
+      /* התאמה מדויקת לגודל הקונטיינר הכולל כדי למנוע עיוותים */
+      background-size: calc(90vw * 1) calc((90vw * 0.75) * 1); 
       background-repeat: no-repeat;
       transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    @media (min-width: 1333px) {
+      .tile {
+        background-size: 1200px 900px;
+      }
     }
 
     /* מצב חשיפת קובייה (בתרומה או צפייה זמנית) */
@@ -202,6 +209,13 @@
     <div class="progress-bar-container">
       <div class="progress-bar-fill" id="progressBar"></div>
     </div>
+
+    .stats-container {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      direction: rtl;
+    }
 
     <div class="stats-container">
       <div class="stat-box">
@@ -258,7 +272,7 @@
 
     const tileElements = [];
 
-    // יצירת הקוביות וחישוב מיקום הרקע בצורה מותאמת לגריד
+    // יצירת הקוביות וחישוב מיקום הרקע בדיוק לפי אינדקס המשבצת בגריד
     for (let i = 0; i < totalTiles; i++) {
       const tile = document.createElement('div');
       tile.classList.add('tile');
